@@ -27,7 +27,7 @@
 % Copyright (c) 2023-2024, Gary P. T. Choi
 
 addpath('code');
-addpath('data');
+addpath('Input_geometry/data');
 
 %% Example 1: Hippocampus
 load('hippocampus.mat');
