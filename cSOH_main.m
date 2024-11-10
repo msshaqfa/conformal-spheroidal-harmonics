@@ -22,18 +22,12 @@ addpath('Input_geometry/data');
 %% Input surface
 
 
-filename = "buddha.mat"; % works n_max = 70
+% filename = "buddha.mat"; % works n_max = 70
 % filename = "vaselion.mat"; % works n_max = 70
 % filename = "bimba.mat"; % works for low resolution n_max = 35
 % filename = "max_ref_poisson.stl";
-
-
-
-% filename = "moai.mat"; % fails
-% filename = "bulldog.mat"; % fails
-% filename = "nefertiti.mat"; % fails
-% filename = "hippocampus.mat"; % fails
-% filename = "bunny_remeshed.stl"; % fails
+% filename = "bulldog.mat"; % works n_max = 30
+% filename = "nefertiti.mat"; % works n_max = 30
 
 [~, baseName, file_extension] = fileparts(filename);
 if file_extension == ".mat"
@@ -44,7 +38,7 @@ end
 
 mapping_type = "conformal";
 
-max_n = 35;
+max_n = 20;
 rec_max_n = max_n;
 
 rec_refinement = 6; % max ~6, otherwise it gets very large.
@@ -60,10 +54,10 @@ title('Input surface');
 foci =  sqrt(abs(aa^2 - cc^2));
 new_v = (R_y * new_v')';
 
-if spheroid_type == "prolate"
-    zeta = asinh(1 / foci);
-else % for oblates
-    zeta = acosh(1 / foci);
+if spheroid_type == "oblate" % for oblates
+    zeta = acosh(aa / foci);
+else % for prolates and spheres
+    zeta = asinh(aa / foci);
 end
 
 scatter3(new_v(:, 1), new_v(:, 2), new_v(:, 3), 'kx', 'DisplayName', 'New boundary')
@@ -106,8 +100,6 @@ title('Area Distortion');
 xlabel('log(final area/initial area)')
 ylabel('Number of faces')
 set(gca,'FontSize',12);
-
-
 
 %% Basis functions and decomposition
 
@@ -174,10 +166,6 @@ rec_v(:, 1) = rec_v(:, 1) * aa;
 rec_v(:, 2) = rec_v(:, 2) * aa;
 rec_v(:, 3) = rec_v(:, 3) * cc;
 
-% figure;
-% trisurf(rec_f, rec_v(:,1), rec_v(:,2), rec_v(:,3), 'FaceColor', 'cyan', 'EdgeColor', 'black');
-% axis equal;
-
 [rec_thetas, rec_phis] = cart2spheroid(rec_v, foci, zeta, spheroid_type);
 
 
@@ -199,4 +187,3 @@ if endsWith(fname_out, '.mat', 'IgnoreCase', true)
     fname_out = strrep(fname_out, '.mat', '.stl');
 end
 stlWrite(fname_out, rec_f, rec_v);
-

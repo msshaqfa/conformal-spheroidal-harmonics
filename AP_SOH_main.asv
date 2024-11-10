@@ -12,6 +12,9 @@
 %   "Spheroidal harmonics for generalizing the morphological decomposition of closed parametric
 %   surfaces". Construction and Building Materials, 2024.
 % 
+% [3] Z. Lyu, L. M. Lui, and G. P. T. Choi, "Ellipsoidal Density-Equalizing Map for Genus-0 Closed Surfaces."
+%       Preprint, arXiv:2410.12331, 2024.
+% 
 % Copyright (c) 2024, Mahmoud Shaqfa and Gary P. T. Choi
 
 clear; clc; close all;
@@ -25,13 +28,18 @@ addpath('Input_geometry/data');
 % filename = "buddha.mat"; % works n_max = 70
 % filename = "vaselion.mat"; % works n_max = 70
 % filename = "bimba.mat"; % works for low resolution n_max = 35
-% filename = "max_ref_poisson.stl";
-% filename = "bulldog.mat"; % works n_max = 30
-% filename = "nefertiti.mat"; % fails
+filename = "max_ref_poisson.stl";
+
+% filename = "twisted_ball.mat"; % works n_max = 40
+% filename = "duck.mat"; % works n_max = 40
+% filename = "david.mat"; % works n_max = 40
+
 
 % filename = "moai.mat"; % fails
-% filename = "hippocampus.mat"; % fails
-% filename = "bunny_remeshed.stl"; % fails
+% filename = "bulldog.mat"; % works n_max = 40
+% filename = "nefertiti.mat"; % fails
+% filename = "hippocampus.mat"; % works n_max = 10
+% filename = "bunny_remeshed.stl"; % fails with the AP mapping
 
 [~, baseName, file_extension] = fileparts(filename);
 if file_extension == ".mat"
@@ -40,12 +48,19 @@ elseif file_extension == ".stl"
     [v, f, ~, ~] = stlRead(filename);
 end
 
-mapping_type = "conformal";
+% mapping_type = "conformal";
+mapping_type = "areapreserving"; % AP
 
-max_n = 40;
+% AP parameters
+max_iter = 200;
+dt = 0.1;
+epsilon = 1e-3;
+
+
+max_n = 20;
 rec_max_n = max_n;
 
-rec_refinement = 6; % max ~6, otherwise it gets very large.
+rec_refinement = 4; % max ~6, otherwise it gets very large.
 
 plot_mesh(v,f);
 view([-70 10]);
@@ -80,11 +95,13 @@ hold off
 %% Surface Parameterization (Conformal or Quasi-conformal mapping)
 if mapping_type == "conformal"
     map = ellipsoidal_conformal_map(new_v, f, aa, aa, cc);
+elseif mapping_type == "areapreserving"
+    map_0 = ellipsoidal_conformal_map(new_v, f, aa, aa, cc);
+    % Set the population as the face area for achieving area-preserving map
+    population = face_area(f,v);
+    % Run the EDEM algorithm
+    map = EDEM(v, f, population, aa, aa, cc, map_0, dt, epsilon, max_iter);
 end
-
-plot_mesh(map, f);
-view([-70 10]);
-title('Ellipsoidal conformal parameterization');
 
 angle_distortion = angle_distortion(new_v, f, map);
 area_distortion = area_distortion(new_v, f, map);
@@ -172,10 +189,6 @@ rec_v(:, 1) = rec_v(:, 1) * aa;
 rec_v(:, 2) = rec_v(:, 2) * aa;
 rec_v(:, 3) = rec_v(:, 3) * cc;
 
-% figure;
-% trisurf(rec_f, rec_v(:,1), rec_v(:,2), rec_v(:,3), 'FaceColor', 'cyan', 'EdgeColor', 'black');
-% axis equal;
-
 [rec_thetas, rec_phis] = cart2spheroid(rec_v, foci, zeta, spheroid_type);
 
 
@@ -198,3 +211,8 @@ if endsWith(fname_out, '.mat', 'IgnoreCase', true)
 end
 stlWrite(fname_out, rec_f, rec_v);
 
+figure;
+scatter3(rec_v(:, 1), rec_v(:, 2), rec_v(:, 3), 36, 'r', 'filled'); % First cloud in red
+hold on; 
+scatter3(x2, y2, z2, 36, 'b', 'filled'); % Second cloud in blue
+axis
